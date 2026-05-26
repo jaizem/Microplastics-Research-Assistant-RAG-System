@@ -5,3 +5,4 @@ pymupdf
 langchain_text_splitters
 langchain_openai
 python-dotenv
+ragas
