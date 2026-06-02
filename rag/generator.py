@@ -36,7 +36,3 @@ def generate_answer(question, docs):
         "context": context,
         "question": question
     }).content
-
-
-
-# Missing credentials.
