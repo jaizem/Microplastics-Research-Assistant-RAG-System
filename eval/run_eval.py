@@ -45,10 +45,9 @@ with open("../notebooks/ragas_samples.json", "r", encoding="utf-8") as f:
 dataset = build_ragas_dataset(samples)
 
 
-from ragas.llms import llm_factory
-from langchain_openai import OpenAIEmbeddings
 
-_global_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+from rag.generator import get_llm
+from rag.ingest import get_embeddings
 
 result = evaluate(
     dataset,
@@ -57,7 +56,9 @@ result = evaluate(
         answer_relevancy,
         context_precision,
         context_recall
-    ]
+    ],
+    llm = get_llm(),
+    embeddings = get_embeddings()
 )
 
 print(result)
