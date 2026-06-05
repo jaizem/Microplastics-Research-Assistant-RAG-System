@@ -1,0 +1,103 @@
+"""
+Evaluation Support Functions
+"""
+import pandas as pd
+from pathlib import Path
+from rag import retriever
+from ragas import EvaluationDataset, SingleTurnSample
+from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextRelevance, RubricsScoreWithoutReference
+
+MAX_CONTEXTS = 4
+MAX_CONTEXT_CHARS = 1200
+
+def truncate_context(text: str, max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    truncated = text[:max_chars]
+    if "\n" in truncated:
+        truncated = truncated.rsplit("\n", 1)[0]
+    return truncated + "\n...[truncated]"
+
+
+def truncate_contexts(contexts: list[str]) -> list[str]:
+    return [truncate_context(c) for c in contexts[:MAX_CONTEXTS]]
+
+def retrieve_docs(question):
+    return retriever.invoke(question)
+
+def build_ragas_dataset(samples):
+    ragas_samples = []
+
+    for sample in samples:
+        ragas_samples.append(
+            SingleTurnSample(
+                user_input=sample["question"],
+                response=sample["answer"],
+                retrieved_contexts=truncate_contexts(sample["contexts"])
+            )
+        )
+
+    return EvaluationDataset(samples=ragas_samples)
+
+# Evaluation setup
+async def run_eval(dataset, llm, embeddings, question_ids=None):
+    # metrics setup
+    faithfulness_metric = Faithfulness(llm=llm)
+    answer_relevancy_metric = AnswerRelevancy(llm=llm, embeddings=embeddings)
+    context_relevance_metric = ContextRelevance(llm=llm)
+    scope_metric = RubricsScoreWithoutReference(
+        name="scope_representation",
+        rubrics={
+            "score1_desc": "Answer makes claims that clearly exceed the scope (e.g. generalizes animal findings to humans, or presents a single study's results as universal consensus)",
+            "score2_desc": "Answer somewhat oversteps scope in minor ways",
+            "score3_desc": "Answer mostly respects scope with small ambiguities",
+            "score4_desc": "Answer correctly and precisely represents the scope of the source"
+        },
+        llm=llm
+    )
+
+    results = []
+    
+    sample_ids = question_ids or [None] * len(dataset.samples)
+
+    for sample, sample_id in zip(dataset.samples, sample_ids):
+        f_score = await faithfulness_metric.ascore(
+            user_input=sample.user_input,
+            response=sample.response,
+            retrieved_contexts=sample.retrieved_contexts
+        )
+
+        ar_score = await answer_relevancy_metric.ascore(
+            user_input=sample.user_input,
+            response=sample.response
+        )
+
+        cr_score = await context_relevance_metric.ascore(
+            user_input=sample.user_input,
+            retrieved_contexts=sample.retrieved_contexts
+        )
+
+        sc_score = await scope_metric.ascore(
+            user_input=sample.user_input,
+            response=sample.response
+        )
+
+        result = {
+            "question_id": sample_id,
+            "faithfulness": f_score.value,
+            "answer_relevancy": ar_score.value,
+            "context_relevance": cr_score.value,
+            "scope_representation": sc_score.value,
+        }
+
+        if sample_id is None:
+            result["question"] = sample.user_input
+
+        results.append(result)
+    
+    # save results
+    results_dir = Path("../data/results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    df = pd.DataFrame(results)
+    df.to_json(results_dir / "eval_results.json", orient="records", indent=2)

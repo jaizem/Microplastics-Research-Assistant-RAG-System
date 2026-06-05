@@ -1,0 +1,16 @@
+[
+  {
+    "question_id":"q1",
+    "faithfulness":1.0,
+    "answer_relevancy":0.0,
+    "context_relevance":1.0,
+    "scope_representation":3.0
+  },
+  {
+    "question_id":"q2",
+    "faithfulness":1.0,
+    "answer_relevancy":1.0,
+    "context_relevance":1.0,
+    "scope_representation":4.0
+  }
+]
