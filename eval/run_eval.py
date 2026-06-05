@@ -35,21 +35,18 @@ with open("../notebooks/ragas_samples.json", "r", encoding="utf-8") as f:
 dataset = build_ragas_dataset(samples)
 
 
-from ragas import evaluate
+import asyncio
+from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextRelevance, RubricsScoreWithoutReference
 from rag.ingest import get_embeddings
-from rag.generator import get_instructor_llm, get_llm
-#from ragas.metrics.collections import RubricsScoreWithoutReference, ContextRelevance, Faithfulness, AnswerRelevancy
-
+from rag.generator import get_instructor_llm
 
 embeddings = get_embeddings()
 llm = get_instructor_llm()
 
-"""
-faithfulness = Faithfulness(llm=llm)
-answer_relevancy = AnswerRelevancy(llm=llm, embeddings=embeddings)
-context_relevance = ContextRelevance(llm=llm)
-
-scope_score = RubricsScoreWithoutReference(
+faithfulness_metric = Faithfulness(llm=llm)
+answer_relevancy_metric = AnswerRelevancy(llm=llm, embeddings=embeddings)
+context_relevance_metric = ContextRelevance(llm=llm)
+scope_metric = RubricsScoreWithoutReference(
     name="scope_representation",
     rubrics={
         "score1_desc": "Answer makes claims that clearly exceed the scope (e.g. generalizes animal findings to humans, or presents a single study's results as universal consensus)",
@@ -59,27 +56,6 @@ scope_score = RubricsScoreWithoutReference(
     },
     llm=llm
 )
-
-result = evaluate(
-    dataset,
-    metrics=[
-        faithfulness,
-        answer_relevancy,
-        #scope_score,
-        context_relevance,
-    ],
-    llm = llm,
-    embeddings = embeddings
-)
-
-print(result)
-"""
-
-import asyncio
-from ragas.metrics.collections import Faithfulness, AnswerRelevancy
-
-faithfulness_metric = Faithfulness(llm=llm)
-answer_relevancy_metric = AnswerRelevancy(llm=llm, embeddings=embeddings)
 
 async def run_eval(dataset, llm, embeddings):
     results = []
@@ -96,11 +72,37 @@ async def run_eval(dataset, llm, embeddings):
             response=sample.response
         )
 
+        cr_score = await context_relevance_metric.ascore(
+            user_input=sample.user_input,
+            retrieved_contexts=sample.retrieved_contexts
+        )
+
+        sc_score = await scope_metric.ascore(
+            user_input=sample.user_input,
+            response=sample.response
+        )
+
         print(f"Faithfulness: {f_score.value}")
         print(f"Answer Relevancy: {ar_score.value}")
-        
-        results.append({"faithfulness": f_score.value, "answer_relevancy": ar_score.value})
+        print(f"Context Relevance: {cr_score.value}")
+        print(f"Scope Representation: {sc_score.value}")
+
+        results.append({"faithfulness": f_score.value, 
+                        "answer_relevancy": ar_score.value,
+                        "context_relevance": cr_score.value,
+                        "scope_representation": sc_score.value})
     
     return results
 
 results = asyncio.run(run_eval(dataset, llm, embeddings))
+
+
+# save results
+import pandas as pd
+from pathlib import Path
+
+results_dir = Path("../data/results")
+results_dir.mkdir(parents=True, exist_ok=True)
+
+df = pd.DataFrame(results)
+df.to_json(results_dir / "eval_results.json", orient="records", indent=2)
