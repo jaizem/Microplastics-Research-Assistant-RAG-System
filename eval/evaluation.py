@@ -7,6 +7,21 @@ from rag import retriever
 from ragas import EvaluationDataset, SingleTurnSample
 from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextRelevance, RubricsScoreWithoutReference
 
+MAX_CONTEXTS = 4
+MAX_CONTEXT_CHARS = 1200
+
+def truncate_context(text: str, max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    truncated = text[:max_chars]
+    if "\n" in truncated:
+        truncated = truncated.rsplit("\n", 1)[0]
+    return truncated + "\n...[truncated]"
+
+
+def truncate_contexts(contexts: list[str]) -> list[str]:
+    return [truncate_context(c) for c in contexts[:MAX_CONTEXTS]]
+
 def retrieve_docs(question):
     return retriever.invoke(question)
 
@@ -18,7 +33,7 @@ def build_ragas_dataset(samples):
             SingleTurnSample(
                 user_input=sample["question"],
                 response=sample["answer"],
-                retrieved_contexts=sample["contexts"]
+                retrieved_contexts=truncate_contexts(sample["contexts"])
             )
         )
 
