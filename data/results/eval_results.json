@@ -1,0 +1,14 @@
+[
+  {
+    "faithfulness":1.0,
+    "answer_relevancy":0.0,
+    "context_relevance":1.0,
+    "scope_representation":3.0
+  },
+  {
+    "faithfulness":1.0,
+    "answer_relevancy":0.9999946441,
+    "context_relevance":1.0,
+    "scope_representation":4.0
+  }
+]
