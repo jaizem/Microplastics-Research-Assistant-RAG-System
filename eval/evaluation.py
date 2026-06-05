@@ -5,10 +5,7 @@ import pandas as pd
 from pathlib import Path
 from rag import retriever
 from ragas import EvaluationDataset, SingleTurnSample
-import asyncio
 from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextRelevance, RubricsScoreWithoutReference
-from rag.ingest import get_embeddings
-from rag.generator import get_instructor_llm
 
 def retrieve_docs(question):
     return retriever.invoke(question)
@@ -28,7 +25,7 @@ def build_ragas_dataset(samples):
     return EvaluationDataset(samples=ragas_samples)
 
 # Evaluation setup
-async def run_eval(dataset, llm, embeddings):
+async def run_eval(dataset, llm, embeddings, question_ids=None):
     # metrics setup
     faithfulness_metric = Faithfulness(llm=llm)
     answer_relevancy_metric = AnswerRelevancy(llm=llm, embeddings=embeddings)
@@ -46,7 +43,9 @@ async def run_eval(dataset, llm, embeddings):
 
     results = []
     
-    for sample in dataset.samples:
+    sample_ids = question_ids or [None] * len(dataset.samples)
+
+    for sample, sample_id in zip(dataset.samples, sample_ids):
         f_score = await faithfulness_metric.ascore(
             user_input=sample.user_input,
             response=sample.response,
@@ -68,13 +67,18 @@ async def run_eval(dataset, llm, embeddings):
             response=sample.response
         )
 
-        results.append({"question": sample.user_input, 
-                        "answer": sample.response,
-                        "retrieved_contexts": sample.retrieved_contexts,
-                        "faithfulness": f_score.value, 
-                        "answer_relevancy": ar_score.value,
-                        "context_relevance": cr_score.value,
-                        "scope_representation": sc_score.value})
+        result = {
+            "question_id": sample_id,
+            "faithfulness": f_score.value,
+            "answer_relevancy": ar_score.value,
+            "context_relevance": cr_score.value,
+            "scope_representation": sc_score.value,
+        }
+
+        if sample_id is None:
+            result["question"] = sample.user_input
+
+        results.append(result)
     
     # save results
     results_dir = Path("../data/results")

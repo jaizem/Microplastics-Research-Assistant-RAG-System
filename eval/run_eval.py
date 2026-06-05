@@ -1,46 +1,39 @@
+"""
+CLI entrypoint for running the RAG evaluation from a terminal.
+"""
+
 import sys
 from pathlib import Path
-# go from /notebooks → project root
-project_root = Path().resolve().parent
-sys.path.append(str(project_root))
+import argparse
+
+# Ensure the project root is on sys.path when this script is invoked from
+# a notebook or a non-root working directory.
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from src.config import ensure_openai_key
+from eval.evaluation_runner import evaluate
 
 
-import os
-os.environ.pop("SSL_CERT_FILE", None)
-os.environ.pop("REQUESTS_CA_BUNDLE", None)
-os.environ.pop("CURL_CA_BUNDLE", None)
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument(
+        "--samples",
+        default=str(Path(__file__).resolve().parent.parent / "data" / "eval" / "ragas_samples.json"),
+        help="Path to ragas samples json file. Each sample must include an 'id' field for result joining.",
+    )
+    p.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Do not prompt for OPENAI_API_KEY if missing in environment",
+    )
+    args = p.parse_args()
+
+    ensure_openai_key(prompt_if_missing=not args.no_prompt)
+
+    evaluate(args.samples)
 
 
-# temporary bug workaround. see link for more permament solution. 
-# https://github.com/vibrantlabsai/ragas/issues/2753#issuecomment-4563590504
-import types
-dummy_chat = types.ModuleType("langchain_community.chat_models.vertexai")
-dummy_chat.ChatVertexAI = type("ChatVertexAI", (object,), {})
-sys.modules["langchain_community.chat_models.vertexai"] = dummy_chat
-import langchain_community.llms
-langchain_community.llms.VertexAI = type("VertexAI", (object,), {})
-
-
-from dotenv import load_dotenv
-load_dotenv()
-import getpass
-if not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for OpenAI: ")
-
-
-import json
-from src.eval import build_ragas_dataset, run_eval
-with open("../data/eval/ragas_samples.json", "r", encoding="utf-8") as f:
-    samples = json.load(f)
-dataset = build_ragas_dataset(samples)
-
-
-import asyncio
-from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextRelevance, RubricsScoreWithoutReference
-from rag.ingest import get_embeddings
-from rag.generator import get_instructor_llm
-
-embeddings = get_embeddings()
-llm = get_instructor_llm()
-
-asyncio.run(run_eval(dataset, llm, embeddings))
+if __name__ == "__main__":
+    main()

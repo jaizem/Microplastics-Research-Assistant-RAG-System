@@ -1,5 +1,6 @@
 [
   {
+    "id": "q1",
     "question": "What are microplastics doing to human health?",
     "contexts": [
       "Roslan et al. \nPAPERS\n2024  •  Vol. 14  •  04179\t\n8\t\nwww.jogh.org • doi: 10.7189/jogh.14.04179\nWhile adverse effects are known in marine organisms, but health effects in human are less well-studied. \nHence the following discussion on health and diseases associated with microplastic is largely based on \nin-vitro studies, small pilot human studies and some speculation based on changes found in marine organ­\nisms. For example, notable adverse effects of microplastics to the blood vessels have included genotoxicity \nand cytotoxicity. In an in-vitro study, isolated human peripheral blood lymphocytes were incubated with \n10–45 µm (μm) of polyethylene microplastics [45], and it was found that microplastics increased the fre­\nquency of micronucleation, nucleoplasm bridge formation and nuclear bud formation in the bloodstream. \nThese effects have been linked to disorders such as infertility, diabetes, obesity, cardiovascular disease (cor­",
@@ -10,6 +11,7 @@
     "answer": "Microplastics have been associated with several adverse effects on human health, although the research is still limited. In vitro studies have shown that microplastics can increase the frequency of micronucleation, nucleoplasm bridge formation, and nuclear bud formation in human blood lymphocytes, which may be linked to disorders such as infertility, diabetes, obesity, and cardiovascular disease. Additionally, while there is insufficient information to draw firm conclusions about the toxicity of microplastics, some animal studies have reported impacts like liver inflammation. The potential for chemical toxicity due to leaching of plastic-associated chemicals is also a concern. Overall, the human health effects of microplastics remain largely unknown and require further investigation."
   },
   {
+    "id": "q2",
     "question": "How do microplastics enter the ocean?",
     "contexts": [
       "micro\nE M E R G I N G  I S S U E S\nMicroplastics are tiny plastic particles up to 5 mm in diameter. In the last four \ndecades, concentrations of these particles appear to have increased significantly \nin the surface waters of the ocean.\nConcern about the potential impact of microplastics in the marine environment \nhas gathered momentum during the past few years. The number of scientific \ninvestigations has increased, along with public interest and pressure on decision-\nmakers to respond. \nDespite a rapidly growing knowledge base, the extent to which microplastics \nrepresent a hazard to marine life – and may provide a pathway for transport of \nharmful chemicals through the food web – is still being assessed. A number of \ninternational initiatives are under way to determine the physical and chemical \neffects of microplastics in the ocean, and to identify ways to address this \nemerging issue.",
