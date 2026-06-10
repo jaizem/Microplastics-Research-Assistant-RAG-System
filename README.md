@@ -74,6 +74,33 @@ Answer + Retrieved Contexts → Ragas evaluation pipeline → Faithfulness, Answ
 - FAISS / Chroma (vector store)
 - Pandas / NumPy
 
+## Setup
+
+1. Create and activate the Conda environment from `requirements.yml`:
+
+```bash
+conda env create -f requirements.yml
+conda activate microplastics-research-assistant
+```
+
+2. Create a `.env` file in the project root with your OpenAI API key:
+
+```bash
+# .env
+export OPENAI_API_KEY=<insert-key>
+```
+
+3. Optional: if you want to use LangSmith tracing, also add these variables:
+
+```bash
+export LANGSMITH_TRACING_V2=true
+export LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+export LANGSMITH_API_KEY=<insert-key>
+export LANGSMITH_PROJECT=<insert-name>
+```
+
+4. Verify the environment is active and packages are installed, then run the project.
+
 ## Usage
 - `python main.py` to run the full notebook-derived workflow from ingestion through evaluation.
 - `python eval/run_eval.py` to run evaluation on an existing sample file.

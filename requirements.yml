@@ -9,8 +9,8 @@ langchain-text-splitters=0.2.4
 langsmith=0.1.147
 ragas=0.4.3
 openai=1.109.1
-pandas=2.3.3
-python-dotenv=1.2.2
-pymupdf=1.27.2.3
+pandas
+python-dotenv
+pymupdf
 faiss-cpu=1.14.2
-ipykernel=7.2.0
+ipykernel
