@@ -46,9 +46,13 @@ Answer + Retrieved Contexts → Ragas evaluation pipeline → Faithfulness, Answ
 ├── README.md
 ├── requirements.yml
 ├── data
+│   ├── benchmark
 │   ├── context_corpus
 │   ├── eval
 │   └── results
+├── docs
+│   ├── EVAL.md
+│   └── GOLD_STANDARD.md
 ├── eval
 │   ├── evaluation.py
 │   ├── evaluation_runner.py
@@ -90,6 +94,8 @@ conda activate microplastics-research-assistant
 export OPENAI_API_KEY=<insert-key>
 ```
 
+If you keep local-only secrets, you can use `ignored-.env` instead (it is loaded first when present).
+
 3. Optional: if you want to use LangSmith tracing, also add these variables:
 
 ```bash
@@ -104,6 +110,9 @@ export LANGSMITH_PROJECT=<insert-name>
 ## Usage
 - `python main.py` to run the full notebook-derived workflow from ingestion through evaluation.
 - `python eval/run_eval.py` to run evaluation on an existing sample file.
+- `python eval/run_eval.py --gold --limit 2` for the hand-checked benchmark in `data/benchmark/questions.jsonl` (same pipeline, plus reference-based metrics when available).
+
+See `docs/EVAL.md` and `docs/GOLD_STANDARD.md` for details.
 
 ## Key Focus Areas
 - Retrieval quality and relevance
@@ -227,6 +236,14 @@ Overall, the system highlights that while risks are increasingly recognized, cur
 - **Requires:** `response`, optional `reference` and `rubrics`
 - **Purpose:** Apply task-specific rubrics for fine-grained scoring and human-aligned evaluation.
 
+Gold benchmark additions (used by `python eval/run_eval.py --gold`):
+
+- `answer_correctness`
+- `context_precision`
+- `context_recall`
+
+These reference-based metrics run only when `reference_answer` is present and `answerable_flag` is `true`.
+
 ## Version
 - Current release: `2.0`
 - Previous major update: `1.5` introduced compatibility updates for the recent LangChain community wrapper changes and LangSmith implementation revisions.
@@ -234,6 +251,7 @@ Overall, the system highlights that while risks are increasingly recognized, cur
 ## Known Issues / Patch Notes
 - This version documents the current workaround for a Ragas / LangChain integration issue affecting the import path and SSL environment.
 - `src/config.py` clears `SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`, and `CURL_CA_BUNDLE` before OpenAI-related imports to avoid SSL errors.
-- `main.py` now imports `src.config` early so the CA/SSL patch is applied before the RAG workflow starts.
+- Ragas tries to import Vertex AI langchain helpers we do not use. `src/config.py` stubs those modules on import (same trick as `notebooks/eval_ragas.ipynb`).
+- `main.py` imports `src.config` early so the SSL and import patches run before the RAG workflow starts.
 - `eval/evaluation.py` includes context truncation to reduce prompt size and avoid Ragas max-token or incomplete-output failures during faithfulness evaluation.
 - Version `1.5` specifically addressed LangChain community wrapper updates and LangSmith changes used by the Ragas evaluation path.

@@ -21,7 +21,7 @@ async def evaluate_async(samples_path: str):
     embeddings = get_embeddings()
     llm = get_instructor_llm()
 
-    await run_eval_async(dataset, llm, embeddings, question_ids=sample_ids)
+    await run_eval_async(dataset, llm, embeddings, question_ids=sample_ids, samples=samples)
 
 
 def evaluate(samples_path: str):
