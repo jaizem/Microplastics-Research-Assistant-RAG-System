@@ -46,9 +46,13 @@ Answer + Retrieved Contexts → Ragas evaluation pipeline → Faithfulness, Answ
 ├── README.md
 ├── requirements.yml
 ├── data
+│   ├── benchmark
 │   ├── context_corpus
 │   ├── eval
 │   └── results
+├── docs
+│   ├── EVAL.md
+│   └── GOLD_STANDARD.md
 ├── eval
 │   ├── evaluation.py
 │   ├── evaluation_runner.py
@@ -90,6 +94,8 @@ conda activate microplastics-research-assistant
 export OPENAI_API_KEY=<insert-key>
 ```
 
+If you keep local-only secrets, you can use `ignored-.env` instead (it is loaded first when present).
+
 3. Optional: if you want to use LangSmith tracing, also add these variables:
 
 ```bash
@@ -104,6 +110,9 @@ export LANGSMITH_PROJECT=<insert-name>
 ## Usage
 - `python main.py` to run the full notebook-derived workflow from ingestion through evaluation.
 - `python eval/run_eval.py` to run evaluation on an existing sample file.
+- `python eval/run_eval.py --gold --limit 2` for the hand-checked benchmark in `data/benchmark/questions.jsonl` (same pipeline, plus reference-based metrics when available).
+
+See `docs/EVAL.md` and `docs/GOLD_STANDARD.md` for details.
 
 ## Key Focus Areas
 - Retrieval quality and relevance
@@ -136,96 +145,20 @@ Overall, the system highlights that while risks are increasingly recognized, cur
 
 ## Evaluation Metrics
 
-### 1. Faithfulness
+Default metrics (used by `main.py` and `python eval/run_eval.py`):
 
-> The Faithfulness metric measures how factually consistent a response is with the retrieved context. It ranges from 0 to 1, with higher scores indicating better consistency.
->
-> A response is considered faithful if all its claims can be supported by the retrieved context.
->
-> To calculate this: 1. Identify all the claims in the response. 2. Check each claim to see if it can be inferred from the retrieved context. 3. Compute the faithfulness score using the formula:
->
-> <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
->   <mtext>Faithfulness Score</mtext>
->   <mo>=</mo>
->   <mfrac>
->     <mtext>Number of claims in the response supported by the retrieved context</mtext>
->     <mtext>Total number of claims in the response</mtext>
->   </mfrac>
-> </math>
+- `faithfulness` — is the answer supported by retrieved context?
+- `answer_relevancy` — does the answer address the question?
+- `context_relevance` — are retrieved contexts useful for the query?
+- `scope_representation` — does the answer stay within source scope?
 
-- **Requires:** `answer`, `contexts`
-- **Purpose:** Is the response supported by the contexts? (Reference-free, returns a score in [0,1])
-- **Notes:** A similar metric in ragas is Response Groundedness which also requires: `answer`, `contexts` which returns a pass/fail value. This will not be used, since faithfulness tests this more aggressively by evaluating each of the claims within the answer, rather than the answer as a whole.
+Gold benchmark additions (used by `python eval/run_eval.py --gold`):
 
-### 2. Answer Relevance
+- `answer_correctness`
+- `context_precision`
+- `context_recall`
 
-> The evaluation metric, Answer Relevancy, focuses on assessing how pertinent the generated answer is to the given prompt. A lower score is assigned to answers that are incomplete or contain redundant information and higher scores indicate better relevancy. This metric is computed using the question, the context and the answer.
->
-> The Answer Relevancy is defined as the mean cosine similarity of the original question to a number of artifical questions, which where generated (reverse engineered) based on the answer:
->
-> <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
->   <mtext>answer relevancy</mtext>
->   <mo>=</mo>
->   <mfrac>
->     <mn>1</mn>
->     <mi>N</mi>
->   </mfrac>
->   <munderover>
->     <mo data-mjx-texclass="OP">&#x2211;</mo>
->     <mrow data-mjx-texclass="ORD">
->       <mi>i</mi>
->       <mo>=</mo>
->       <mn>1</mn>
->     </mrow>
->     <mrow data-mjx-texclass="ORD">
->       <mi>N</mi>
->     </mrow>
->   </munderover>
->   <mi>c</mi>
->   <mi>o</mi>
->   <mi>s</mi>
->   <mo stretchy="false">(</mo>
->   <msub>
->     <mi>E</mi>
->     <mrow data-mjx-texclass="ORD">
->       <msub>
->         <mi>g</mi>
->         <mi>i</mi>
->       </msub>
->     </mrow>
->   </msub>
->   <mo>,</mo>
->   <msub>
->     <mi>E</mi>
->     <mi>o</mi>
->   </msub>
->   <mo stretchy="false">)</mo>
-> </math>
-
-- **Requires:** `question`, `contexts`, `answer`
-- **Purpose:** Quantify how well the answer maps back to the original question via reverse-engineered question generation.
-
-### 3. Context Relevance
-
-> Context Relevance evaluates whether the retrieved_contexts (chunks or passages) are pertinent to the user_input. This is done via two independent "LLM-as-a-Judge" prompt calls that each rate the relevance on a scale of 0, 1, or 2. The ratings are then converted to a [0,1] scale and averaged to produce the final score. Higher scores indicate that the contexts are more closely aligned with the user's query.
->
-> 0 → The retrieved contexts are not relevant to the user's query at all.
->
-> 1 → The contexts are partially relevant.
->
-> 2 → The contexts are completely relevant.
->
-- **Requires:** `user_input`, `retrieved_contexts`
-- **Purpose:** Judge whether the returned contexts are on-topic and useful for answering the query.
-
-### 4. Rubrics-Based Criteria Scoring
-
-> The Rubric-Based Criteria Scoring Metric is used to do evaluations based on user-defined rubrics. Each rubric defines a detailed score description, typically ranging from 1 to 5. The LLM assesses and scores responses according to these descriptions, ensuring a consistent and objective evaluation.
->
-> Example use: Does the answer correctly represent the scope of the source (e.g., not saying "microplastics cause X in humans" when the paper only studied fish)?
->
-- **Requires:** `response`, optional `reference` and `rubrics`
-- **Purpose:** Apply task-specific rubrics for fine-grained scoring and human-aligned evaluation.
+These reference-based metrics run only when `reference_answer` is present and `answerable_flag` is `true`.
 
 ## Version
 - Current release: `2.0`
@@ -234,6 +167,7 @@ Overall, the system highlights that while risks are increasingly recognized, cur
 ## Known Issues / Patch Notes
 - This version documents the current workaround for a Ragas / LangChain integration issue affecting the import path and SSL environment.
 - `src/config.py` clears `SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`, and `CURL_CA_BUNDLE` before OpenAI-related imports to avoid SSL errors.
-- `main.py` now imports `src.config` early so the CA/SSL patch is applied before the RAG workflow starts.
+- Ragas tries to import Vertex AI langchain helpers we do not use. `src/config.py` stubs those modules on import (same trick as `notebooks/eval_ragas.ipynb`).
+- `main.py` imports `src.config` early so the SSL and import patches run before the RAG workflow starts.
 - `eval/evaluation.py` includes context truncation to reduce prompt size and avoid Ragas max-token or incomplete-output failures during faithfulness evaluation.
 - Version `1.5` specifically addressed LangChain community wrapper updates and LangSmith changes used by the Ragas evaluation path.

@@ -13,7 +13,6 @@ This script reproduces the notebook workflow:
 import sys
 from pathlib import Path
 import json
-import types
 
 # Ensure project root is importable
 ROOT = Path(__file__).resolve().parent
@@ -22,13 +21,6 @@ if str(ROOT) not in sys.path:
 
 # Apply environment fixes before importing libraries that may use OpenAI/requests
 import src.config  # noqa: F401
-
-# Temporary bug workaround from notebook (preserves original behavior)
-dummy_chat = types.ModuleType("langchain_community.chat_models.vertexai")
-dummy_chat.ChatVertexAI = type("ChatVertexAI", (object,), {})
-sys.modules["langchain_community.chat_models.vertexai"] = dummy_chat
-import langchain_community.llms
-langchain_community.llms.VertexAI = type("VertexAI", (object,), {})
 
 from rag.pipeline import run_rag
 from rag.retriever import get_retriever

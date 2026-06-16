@@ -1,0 +1,1 @@
+{"question_id": "mp-NEW", "question": "Your question?", "paper_id": "pdf_stem_or_null", "reference_answer": "Short answer you'd accept from the PDF.", "evidence_spans": [], "source_chunk_ids": ["pdf_stem__0"], "difficulty": "medium", "answerable_flag": true, "metadata": {"review_status": "pending"}}
